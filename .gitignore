@@ -97,3 +97,22 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Unity generated folders
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+
+# Optional but recommended
+.vs/
+.idea/
+*.pidb
+*.suo
+*.user
+*.userprefs
+
+**/skibidi_room_FINAL.blend 
