@@ -144,6 +144,5 @@ public class HotbarUI : MonoBehaviour
 
         if (_slotImages[_selectedIndex] != null)
             _slotImages[_selectedIndex].color = selectedColor;
-
     }
 }

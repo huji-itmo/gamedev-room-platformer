@@ -7,7 +7,7 @@ public class Interactable : MonoBehaviour
     [Header("Interaction Settings")]
     [SerializeField] private string interactActionName = "Interact";
     [SerializeField] private string animatorTriggerName = "Interact";
-    [SerializeField] private LayerMask playerLayer = 1 << 3; // Layer 3 = Player
+    [SerializeField] private LayerMask playerLayer = 1 << 3;
     [SerializeField] private bool InteractiveEnabled = true;
 
     [Header("References")]
@@ -20,10 +20,10 @@ public class Interactable : MonoBehaviour
     private void Awake()
     {
         _interactAction = InputSystem.actions[interactActionName];
-        
+
         if (animator == null)
             animator = GetComponent<Animator>();
-            
+
         var collider = GetComponent<Collider>();
         if (!collider.isTrigger)
         {
@@ -72,7 +72,7 @@ public class Interactable : MonoBehaviour
         }
 
         animator.SetTrigger(animatorTriggerName);
-        
+
         #if UNITY_EDITOR
         Debug.Log($"[Interactable] Triggered '{animatorTriggerName}' on {gameObject.name}", this);
         #endif
@@ -87,13 +87,11 @@ public class Interactable : MonoBehaviour
 
         if (collider is SphereCollider sphere)
         {
-            // Convert local center offset to world position
             Vector3 worldCenter = transform.TransformPoint(sphere.center);
             Gizmos.DrawWireSphere(worldCenter, sphere.radius);
         }
         else if (collider is BoxCollider box)
         {
-            // Use matrix to correctly handle scale & rotation
             Gizmos.matrix = transform.localToWorldMatrix;
             Gizmos.DrawWireCube(box.center, box.size);
             Gizmos.matrix = Matrix4x4.identity;

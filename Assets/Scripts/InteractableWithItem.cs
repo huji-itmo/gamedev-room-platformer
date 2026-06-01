@@ -23,10 +23,8 @@ public class InteractableWithItem : MonoBehaviour
     [Header("Events")]
     [Tooltip("Fired when player picks up itemToGive")]
     public UnityEvent<ItemSO> OnItemPickedUp;
-
     [Tooltip("Fired when auto-found item is successfully used")]
     public UnityEvent<ItemSO> OnItemUsedSuccessfully;
-
     [Tooltip("Fired when no matching item is found in inventory")]
     public UnityEvent OnItemUseFailed;
 
@@ -62,7 +60,7 @@ public class InteractableWithItem : MonoBehaviour
 
         if (!_interactAction.enabled)
             _interactAction.Enable();
-        
+
         if (!interactiveEnabled || !_isPlayerInside) return;
 
         if (_interactAction.WasPressedThisFrame())
@@ -97,7 +95,7 @@ public class InteractableWithItem : MonoBehaviour
     private void PickupItem()
     {
         if (InventoryManager.Instance == null) { Debug.LogError($"[InteractableWithItem] InventoryManager.Instance is NULL on '{gameObject.name}'!"); return; }
-        if (itemToGive == null) { Debug.LogError($"[InteractableWithItem] itemToGive is null on '{gameObject.name}' — nothing to pick up"); return; }
+        if (itemToGive == null) { Debug.LogError($"[InteractableWithItem] itemToGive is null on '{gameObject.name}'!"); return; }
 
         Debug.Log($"[InteractableWithItem] Attempting to add '{itemToGive.itemName}' to inventory on '{gameObject.name}'");
         if (InventoryManager.Instance.AddItem(itemToGive))
@@ -154,7 +152,7 @@ public class InteractableWithItem : MonoBehaviour
         {
             Gizmos.color = Color.green;
             foreach (string tag in acceptableTags)
-                UnityEditor.Handles.Label(transform.position + Vector3.up * 1.5f, $"✓ {tag}");
+                UnityEditor.Handles.Label(transform.position + Vector3.up * 1.5f, $"{tag}");
         }
     }
 #endif

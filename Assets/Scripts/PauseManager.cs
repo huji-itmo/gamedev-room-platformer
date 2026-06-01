@@ -34,13 +34,20 @@ public class PauseManager : MonoBehaviour
     public bool startPaused = false;
 
     private bool isPaused = false;
-    private Resolution[] resolutions;
+
+    [System.Serializable]
+    private struct ResolutionOption
+    {
+        public int width;
+        public int height;
+        public int refreshRate;
+    }
+    private List<ResolutionOption> _resolutionOptions;
 
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        DontDestroyOnLoad(gameObject);
 
         LoadSettings();
         PopulateResolutions();
@@ -111,61 +118,41 @@ public class PauseManager : MonoBehaviour
     }
     #endregion
 
-    #region ⬇️ PUBLIC VOID METHODS (read from references) ⬇️
-    /// <summary>
-    /// Reads value from sfxSlider reference and applies to AudioMixer.
-    /// Can be called from Button.OnClick() or any void event.
-    /// </summary>
     public void UpdateSFXVolume()
     {
         if (!sfxSlider || !audioMixer) return;
         audioMixer.SetFloat(sfxMixerParam, ConvertVolumeToDB(sfxSlider.value));
     }
 
-    /// <summary>
-    /// Reads value from musicSlider reference and applies to AudioMixer.
-    /// </summary>
     public void UpdateMusicVolume()
     {
         if (!musicSlider || !audioMixer) return;
         audioMixer.SetFloat(musicMixerParam, ConvertVolumeToDB(musicSlider.value));
     }
 
-    /// <summary>
-    /// Reads value from fullscreenToggle reference and applies to Screen.
-    /// </summary>
     public void UpdateFullscreenMode()
     {
         if (!fullscreenToggle) return;
         Screen.fullScreen = fullscreenToggle.isOn;
     }
 
-    /// <summary>
-    /// Reads value from resolutionDropdown reference and applies to Screen.
-    /// </summary>
     public void UpdateResolution()
     {
-        if (!resolutionDropdown || resolutions == null) return;
+        if (!resolutionDropdown || _resolutionOptions == null) return;
         int index = resolutionDropdown.value;
-        if (index < 0 || index >= resolutions.Length) return;
-        
-        Resolution res = resolutions[index];
-        Screen.SetResolution(res.width, res.height, Screen.fullScreen);
+        if (index < 0 || index >= _resolutionOptions.Count) return;
+
+        var opt = _resolutionOptions[index];
+        Screen.SetResolution(opt.width, opt.height, Screen.fullScreenMode, new RefreshRate { numerator = (uint)opt.refreshRate, denominator = 1 });
     }
 
-    /// <summary>
-    /// Saves current slider values to PlayerPrefs.
-    /// </summary>
     public void SaveSettings()
     {
         if (sfxSlider) PlayerPrefs.SetFloat("SFX_Volume", sfxSlider.value);
         if (musicSlider) PlayerPrefs.SetFloat("Music_Volume", musicSlider.value);
         PlayerPrefs.Save();
     }
-    #endregion
 
-    #region ⬇️ OPTIONAL: Parameterized versions for onValueChanged events ⬇️
-    /// Use these if you prefer wiring Slider.onValueChanged(float) directly
     public void SetSFXVolume(float value)
     {
         if (!audioMixer) return;
@@ -182,11 +169,10 @@ public class PauseManager : MonoBehaviour
 
     public void ChangeResolution(int index)
     {
-        if (index < 0 || index >= resolutions.Length) return;
-        Resolution res = resolutions[index];
-        Screen.SetResolution(res.width, res.height, Screen.fullScreen);
+        if (index < 0 || index >= _resolutionOptions.Count) return;
+        var opt = _resolutionOptions[index];
+        Screen.SetResolution(opt.width, opt.height, Screen.fullScreenMode, new RefreshRate { numerator = (uint)opt.refreshRate, denominator = 1 });
     }
-    #endregion
 
     #region Helpers & Initialization
     private float ConvertVolumeToDB(float volume) => volume <= 0.01f ? -80f : Mathf.Log10(volume) * 20f;
@@ -199,7 +185,7 @@ public class PauseManager : MonoBehaviour
         {
             float v = PlayerPrefs.GetFloat("SFX_Volume", 1f);
             sfxSlider.value = v;
-            UpdateSFXVolume(); // Apply to mixer on load
+            UpdateSFXVolume();
         }
 
         if (musicSlider)
@@ -213,16 +199,39 @@ public class PauseManager : MonoBehaviour
     private void PopulateResolutions()
     {
         if (!resolutionDropdown) return;
-        resolutions = Screen.resolutions;
+
+        int[] commonRefreshRates = { 60, 75, 90, 100, 120, 144, 165, 200, 240 };
+        var systemResolutions = Screen.resolutions;
+
+        var seen = new HashSet<(int, int)>();
+        _resolutionOptions = new List<ResolutionOption>();
         List<string> options = new List<string>();
         int currentResIndex = 0;
 
-        for (int i = 0; i < resolutions.Length; i++)
+        foreach (var res in systemResolutions)
         {
-            options.Add($"{resolutions[i].width}x{resolutions[i].height} @ {resolutions[i].refreshRateRatio}");
-            if (resolutions[i].width == Screen.currentResolution.width &&
-                resolutions[i].height == Screen.currentResolution.height)
+            var key = (res.width, res.height);
+            if (!seen.Contains(key))
+            {
+                seen.Add(key);
+                foreach (int hz in commonRefreshRates)
+                {
+                    _resolutionOptions.Add(new ResolutionOption { width = res.width, height = res.height, refreshRate = hz });
+                    options.Add($"{res.width}x{res.height} @ {hz}Hz");
+                }
+            }
+        }
+
+        for (int i = 0; i < _resolutionOptions.Count; i++)
+        {
+            var opt = _resolutionOptions[i];
+            if (opt.width == Screen.currentResolution.width &&
+                opt.height == Screen.currentResolution.height &&
+                Mathf.Approximately((float)Screen.currentResolution.refreshRateRatio.value, opt.refreshRate))
+            {
                 currentResIndex = i;
+                break;
+            }
         }
 
         resolutionDropdown.ClearOptions();
