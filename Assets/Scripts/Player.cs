@@ -1,8 +1,12 @@
+using System.Collections.Generic;
+using System.Linq;
+using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
+    private static readonly int HoldAttackHash = Animator.StringToHash("holdAttack");
     private static readonly int FloatingHash = Animator.StringToHash("floating");
     [Header("Movement Settings")]
     [SerializeField] private float moveSpeed = 5f;
@@ -13,9 +17,6 @@ public class Player : MonoBehaviour
 
     [Tooltip("Input magnitude required to START or RESUME running")]
     [SerializeField] private float runThreshold = 0.7f; 
-
-    [Tooltip("Input magnitude below which we stop moving entirely")]
-    [SerializeField] private float idleThreshold = 0.1f;
 
     [Tooltip("Speed multiplier when in Walking State")]
     [SerializeField] private float walkSpeedMultiplier = 0.2f;
@@ -37,10 +38,32 @@ public class Player : MonoBehaviour
     private InputAction _moveAction;
     private InputAction _jumpAction;
     private InputAction _sprintAction;
+    private InputAction _attackAction;
     
     private Vector2 _moveInput;
     private bool _isJumping;
     private bool _isSprinting;
+    private bool _isAttacking;
+
+    private bool isInAttackState
+    {
+        get {
+           if (animator == null)
+            {
+                return false;
+            } 
+
+            var state = animator.GetCurrentAnimatorStateInfo(0);
+
+            List<string> attackNames = new()
+            {
+                "Attack1", "Attack2", "Attack3",
+            };
+
+            return attackNames.Any(name => state.IsName(name));
+        }
+    }
+
 
     void Awake()
     {
@@ -50,7 +73,7 @@ public class Player : MonoBehaviour
         _moveAction = InputSystem.actions["Move"];
         _jumpAction = InputSystem.actions["Jump"];
         _sprintAction = InputSystem.actions["Sprint"];
-        
+        _attackAction = InputSystem.actions["Attack"];
     }
 
     void Update()
@@ -64,6 +87,9 @@ public class Player : MonoBehaviour
         
         if (_sprintAction != null)
             _isSprinting = _sprintAction.IsPressed();
+
+        if (_attackAction != null)
+            _isAttacking = _attackAction.IsPressed();
     }
 
     void FixedUpdate()
@@ -103,13 +129,23 @@ public class Player : MonoBehaviour
         if (!isGrounded)
         {
             controlFactor = airControlMultiplier;
-        } else if (isSharpTurn)
-        {            
-            controlFactor = walkSpeedMultiplier;
-        } else
-        {
-            controlFactor = 1f;
-        }
+        } else 
+        {      
+            if (isInAttackState)
+            {
+                controlFactor = 0.05f;
+            }
+            else if (isSharpTurn)
+            {
+                controlFactor = walkSpeedMultiplier;
+            }
+            else
+            {
+                controlFactor = 1f;    
+            }
+        } 
+            
+        
         
         Vector3 targetHorizontalVelocity = moveDirection * moveSpeed;
         
@@ -118,6 +154,7 @@ public class Player : MonoBehaviour
         float animSpeed = newHorizontalVelocity.magnitude * controlFactor / moveSpeed ;
         animator.SetFloat(InputSpeedHash, Mathf.Clamp01(animSpeed));
         animator.SetBool(FloatingHash, !isGrounded);
+        animator.SetBool(HoldAttackHash, _isAttacking);
 
         // var state = animator.GetCurrentAnimatorStateInfo(0);
         // if (!state.IsName("Run") && !_isInputtingWalk)

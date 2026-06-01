@@ -2,16 +2,19 @@ using UnityEngine;
 
 public class OnGroundCollider : MonoBehaviour
 {
-    private bool _isOnGround = false;
-    public bool IsOnGround => _isOnGround;
+    public bool IsOnGround {
+        get => shapesInside > 0;
+    }
+
+    public int shapesInside = 0;
 
     void OnTriggerEnter(Collider collision)
     {
-        _isOnGround = true;
+        shapesInside++;
     }
 
     void OnTriggerExit(Collider collision)
     {
-        _isOnGround = false;
+        shapesInside--;
     }
 }
